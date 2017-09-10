@@ -8,6 +8,10 @@ FORMAT: 1A
 ### GET
 
 * 現在の最新ランキングを取得する
+* データ種別番号は下記の一覧から指定する
+    * 1 - iPhone無料
+    * 2 - iPhone有料
+    * 3 - iPhoneセールス
 
 + Parameters
     + country: jp (string, required) - 国
@@ -34,8 +38,14 @@ FORMAT: 1A
 + Response 200 (application/json)
     + Attributes
         + name: ほげほげアプリ (string, required) - アプリ名
+        + info_url: http://www/hoge/hoge (string, required) - アプリ詳細URL
+        + artwork_url: http://www/hoge/hoge.jpg (string, required) - アイコン画像URL
+        + artist_name: ほげほげ会社 (string, required) - 著作者名
+        + artist_url: http://www/hoge (string, required) - 著作者URL
+        + copyright: @ほげほげ (string, required) - 著作権表示
 
 
+リリース日
 ## アプリ順位取得 [/v1/apprank{?id,country,kind,start,end}]
 ### GET
 
@@ -54,3 +64,4 @@ FORMAT: 1A
             + (object)
                 + rank: 9 (number)  - 順位
                 + updated: 2017-09-01 10:00:00 (string) - 順位データ取得日時
+

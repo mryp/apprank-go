@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/robfig/cron"
 )
 
 func main() {
@@ -14,7 +16,18 @@ func main() {
 }
 
 func startCrontab() {
-	//
+	interval := 60
+	rankWatcher = NewRankWatcher()
+	if interval > 0 {
+		c := cron.New()
+		format := fmt.Sprintf("0 */%d * * * *", interval) //分単位指定
+		c.AddFunc(format, func() {
+			rankWatcher.StartBgTask()
+		})
+		c.Start()
+	}
+
+	rankWatcher.StartBgTask()
 }
 
 func startEchoServer() {

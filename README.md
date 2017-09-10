@@ -13,10 +13,6 @@ DB関連
 * https://github.com/gocraft/dbr
 * https://github.com/go-sql-driver/mysql
 
-HTMLパーサ
-
-* https://github.com/PuerkitoBio/goquery
-
 設定ファイル
 
 * https://github.com/BurntSushi/toml

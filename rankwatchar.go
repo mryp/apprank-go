@@ -114,6 +114,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 
 	ranks := db.NewRanks(access)
 	artists := db.NewArtists(access)
+	apps := db.NewApps(access)
 
 	updated := stringToTime(rss.Feed.Updated)
 	dbKind := rssKindToDBKind(kind)
@@ -126,7 +127,11 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	for i, data := range rss.Feed.Results {
 		//ランキングを登録
 		rank := i + 1
-		ranksRecord := db.RanksTable{Updated: updated, Country: country, Kind: dbKind, Rank: rank, AppID: strToInt64(data.ID)}
+		ranksRecord := db.RanksTable{Updated: updated,
+			Country: country,
+			Kind:    dbKind,
+			Rank:    rank,
+			AppID:   stringToInt64(data.ID)}
 		err = ranks.Insert(ranksRecord)
 		if err != nil {
 			fmt.Printf("Rankテーブル登録エラー %v\n", err.Error())
@@ -134,21 +139,39 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		}
 
 		//著作者情報を登録・更新
-		artistsRecord := db.ArtistsTable{ID: strToInt64(data.ArtistID), Name: data.ArtistName, URL: data.ArtistURL}
-		artists.Insert(artistsRecord)
+		artistsRecord := db.ArtistsTable{ID: stringToInt64(data.ArtistID),
+			Name: data.ArtistName,
+			URL:  data.ArtistURL}
+		err = artists.Insert(artistsRecord)
 		if err != nil {
 			fmt.Printf("Artistsテーブル登録エラー %v\n", err.Error())
 			continue
 		}
 
 		//アプリ情報を登録・更新
-
+		appsRecord := db.AppsTable{ID: stringToInt64(data.ID),
+			Name:        data.Name,
+			URL:         data.URL,
+			ArtworkURL:  data.ArtworkURL100,
+			Kind:        data.Kind,
+			Copyright:   data.Copyright,
+			ArtistsID:   stringToInt64(data.ArtistID),
+			ReleaseDate: stringToDate(data.ReleaseDate)}
+		err = apps.Insert(appsRecord)
+		if err != nil {
+			fmt.Printf("Appsテーブル登録エラー %v\n", err.Error())
+			continue
+		}
 	}
 }
 
 func stringToTime(rssTime string) time.Time {
-	//2017-09-04T01:39:08.000-07:00
 	t, _ := time.Parse(time.RFC3339, rssTime)
+	return t
+}
+
+func stringToDate(rssTime string) time.Time {
+	t, _ := time.Parse("2006-01-02", rssTime)
 	return t
 }
 
@@ -171,7 +194,7 @@ func rssKindToDBKind(rssKind string) int {
 	return kind
 }
 
-func strToInt64(text string) int64 {
+func stringToInt64(text string) int64 {
 	i64, _ := strconv.ParseInt(text, 10, 64)
 	return i64
 }

@@ -32,6 +32,7 @@ func NowHandler(c echo.Context) error {
 	}
 	fmt.Printf("NowHandler request=%v\n", *req)
 
+	//DBアクセスオブジェクト生成
 	access, _ := db.NewDBAccess()
 	err := access.Open()
 	if err != nil {
@@ -39,16 +40,16 @@ func NowHandler(c echo.Context) error {
 	}
 	defer access.Close()
 
+	//ランキング一覧取得
 	ranks := db.NewRanks(access)
 	updated, err := ranks.SelectLatestUpdated(req.Country, req.Kind)
 	if err != nil {
 		return err
 	}
 
-	//とりあえずダミーをセット
+	//レスポンス生成
 	response := new(NowResponse)
 	response.Updated = updated
-
 	rankList, err := ranks.SelectRankList(updated, req.Country, req.Kind)
 	if err != nil {
 		fmt.Printf("ランキング一覧取得失敗 err=%s\n", err)
@@ -58,15 +59,20 @@ func NowHandler(c echo.Context) error {
 		return fmt.Errorf("ランキングデータが見つかりません")
 	}
 
-	apps := make([]NowAppsResponce, 0)
+	//アプリ一覧用情報生成
+	apps := db.NewApps(access)
+	appsResponse := make([]NowAppsResponce, 0)
 	for _, data := range rankList {
-		apps = append(apps, NowAppsResponce{
+		record, _ := apps.SelectRecord(data.AppID)
+		name := record.Name
+		artworkURL := record.ArtworkURL
+		appsResponse = append(appsResponse, NowAppsResponce{
 			ID:         data.AppID,
-			Name:       "名前はまだない",
-			ArtworkURL: "http://hogehoge/",
+			Name:       name,
+			ArtworkURL: artworkURL,
 		})
 	}
-	response.Apps = apps
+	response.Apps = appsResponse
 
 	return c.JSON(http.StatusOK, response)
 }

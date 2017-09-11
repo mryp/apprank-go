@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	_ "github.com/go-sql-driver/mysql" //dbrで使用する
 	"github.com/gocraft/dbr"
 )
@@ -15,26 +13,29 @@ const (
 	dbName       = "apprank"
 )
 
-//ConnectDB DB接続
-func ConnectDB() (*dbr.Session, error) {
-	db, err := dbr.Open("mysql", dbUserID+":"+dbPassword+"@tcp("+dbHostName+":"+dbPortNumber+")/"+dbName+"?parseTime=true", nil)
-	if err != nil {
-		fmt.Printf("connectDB err=%v\n", err)
-		return nil, err
-	}
-
-	dbsession := db.NewSession(nil)
-	return dbsession, nil
+type DBAccess struct {
+	session *dbr.Session
 }
 
-func ConnectDBRecheck(session *dbr.Session) (*dbr.Session, error) {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return nil, err
-		}
-		session = newSession
+func NewDBAccess() (*DBAccess, error) {
+	access := new(DBAccess)
+	access.session = nil
+	return access, nil
+}
+
+func (access *DBAccess) Open() error {
+	db, err := dbr.Open("mysql", dbUserID+":"+dbPassword+"@tcp("+dbHostName+":"+dbPortNumber+")/"+dbName+"?parseTime=true", nil)
+	if err != nil {
+		return err
 	}
 
-	return session, nil
+	access.session = db.NewSession(nil)
+	return nil
+}
+
+func (access *DBAccess) Close() {
+	if access.session != nil {
+		access.session.Close()
+		access.session = nil
+	}
 }

@@ -3,8 +3,6 @@ package db
 import (
 	"fmt"
 	"time"
-
-	"github.com/gocraft/dbr"
 )
 
 //テーブル名
@@ -20,7 +18,7 @@ const (
 
 //情報テーブル
 type Ranks struct {
-	session *dbr.Session
+	access *DBAccess
 }
 
 type RanksTable struct {
@@ -32,20 +30,10 @@ type RanksTable struct {
 	AppID   int64     `db:"app_id"`
 }
 
-func NewRanks(session *dbr.Session) (*Ranks, error) {
+func NewRanks(access *DBAccess) *Ranks {
 	ranks := new(Ranks)
-	session, err := ConnectDBRecheck(session)
-	if err != nil {
-		return nil, err
-	}
-	ranks.session = session
-	return ranks, nil
-}
-
-func (ranks *Ranks) Close() {
-	if ranks.session != nil {
-		defer ranks.session.Close()
-	}
+	ranks.access = access
+	return ranks
 }
 
 func (ranks *Ranks) Insert(record RanksTable) error {
@@ -65,7 +53,7 @@ func (ranks *Ranks) Insert(record RanksTable) error {
 	}
 
 	//登録
-	_, err = ranks.session.InsertInto(ranksTableName).
+	_, err = ranks.access.session.InsertInto(ranksTableName).
 		Columns("updated", "country", "kind", "rank", "app_id").
 		Record(record).
 		Exec()
@@ -78,7 +66,7 @@ func (ranks *Ranks) Insert(record RanksTable) error {
 
 func (ranks *Ranks) selectAppRank(updated time.Time, country string, kind int, appID int64) (int, error) {
 	var resultList []RanksTable
-	_, err := ranks.session.Select("*").
+	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("updated = ? AND country = ? AND kind = ? AND app_id = ?",
 			updated, country, kind, appID).
@@ -97,7 +85,7 @@ func (ranks *Ranks) selectAppRank(updated time.Time, country string, kind int, a
 
 func (ranks *Ranks) SelectLatestUpdated(country string, kind int) (time.Time, error) {
 	var resultList []RanksTable
-	_, err := ranks.session.Select("*").
+	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("country = ? AND kind = ?", country, kind).
 		OrderDir("updated", false).
@@ -115,7 +103,7 @@ func (ranks *Ranks) SelectLatestUpdated(country string, kind int) (time.Time, er
 
 func (ranks *Ranks) SelectRankList(updated time.Time, country string, kind int) ([]RanksTable, error) {
 	var resultList []RanksTable
-	_, err := ranks.session.Select("*").
+	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("updated = ? AND country = ? AND kind = ?", updated, country, kind).
 		OrderDir("rank", true).

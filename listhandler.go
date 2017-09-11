@@ -32,12 +32,14 @@ func NowHandler(c echo.Context) error {
 	}
 	fmt.Printf("NowHandler request=%v\n", *req)
 
-	ranks, err := db.NewRanks(nil)
+	access, _ := db.NewDBAccess()
+	err := access.Open()
 	if err != nil {
 		return err
 	}
-	defer ranks.Close()
+	defer access.Close()
 
+	ranks := db.NewRanks(access)
 	updated, err := ranks.SelectLatestUpdated(req.Country, req.Kind)
 	if err != nil {
 		return err

@@ -104,12 +104,16 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		return
 	}
 
-	ranks, err := db.NewRanks(nil)
+	access, _ := db.NewDBAccess()
+	err = access.Open()
 	if err != nil {
-		fmt.Printf("DB初期化エラー %v\n", err.Error())
+		fmt.Printf("DBオープンエラー %v\n", err.Error())
 		return
 	}
-	defer ranks.Close()
+	defer access.Close()
+
+	ranks := db.NewRanks(access)
+	artists := db.NewArtists(access)
 
 	updated := stringToTime(rss.Feed.Updated)
 	dbKind := rssKindToDBKind(kind)
@@ -125,13 +129,19 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		ranksRecord := db.RanksTable{Updated: updated, Country: country, Kind: dbKind, Rank: rank, AppID: strToInt64(data.ID)}
 		err = ranks.Insert(ranksRecord)
 		if err != nil {
-			fmt.Printf("DB登録エラー %v\n", err.Error())
+			fmt.Printf("Rankテーブル登録エラー %v\n", err.Error())
+			continue
+		}
+
+		//著作者情報を登録・更新
+		artistsRecord := db.ArtistsTable{ID: strToInt64(data.ArtistID), Name: data.ArtistName, URL: data.ArtistURL}
+		artists.Insert(artistsRecord)
+		if err != nil {
+			fmt.Printf("Artistsテーブル登録エラー %v\n", err.Error())
 			continue
 		}
 
 		//アプリ情報を登録・更新
-
-		//著作者情報を登録・更新
 
 	}
 }

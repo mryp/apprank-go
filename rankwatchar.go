@@ -119,6 +119,8 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	updated := stringToTime(rss.Feed.Updated)
 	dbKind := rssKindToDBKind(kind)
 	latestUpdated, _ := ranks.SelectLatestUpdated(country, dbKind)
+	fmt.Printf("updated=%s\n", updated.UTC())
+	fmt.Printf("latestUpdated=%s\n", latestUpdated.UTC())
 	if updated.UTC() == latestUpdated.UTC() {
 		fmt.Printf("対象時刻データは登録済み\n")
 		return

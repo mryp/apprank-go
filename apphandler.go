@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
+	"github.com/mryp/apprank-go/db"
 )
 
 type AppInfoRequest struct {
@@ -22,11 +23,11 @@ type AppInfoResponse struct {
 }
 
 type AppRankRequest struct {
-	ID      int64     `json:"id" xml:"id" form:"id" query:"id"`
-	Country string    `json:"country" xml:"country" form:"country" query:"country"`
-	Kind    int       `json:"kind" xml:"kind" form:"kind" query:"kind"`
-	Start   time.Time `json:"start" xml:"start" form:"start" query:"start"`
-	End     time.Time `json:"end" xml:"end" form:"end" query:"end"`
+	ID      int64  `json:"id" xml:"id" form:"id" query:"id"`
+	Country string `json:"country" xml:"country" form:"country" query:"country"`
+	Kind    int    `json:"kind" xml:"kind" form:"kind" query:"kind"`
+	Start   string `json:"start" xml:"start" form:"start" query:"start"`
+	End     string `json:"end" xml:"end" form:"end" query:"end"`
 }
 
 type AppRankResponse struct {
@@ -45,13 +46,29 @@ func AppInfoHandler(c echo.Context) error {
 	}
 	fmt.Printf("AppInfoHandler request=%v\n", *req)
 
-	//とりあえずダミーをセット
+	//DBアクセスオブジェクト生成
+	access, _ := db.NewDBAccess()
+	err := access.Open()
+	if err != nil {
+		return err
+	}
+	defer access.Close()
+
+	//IDからアプリ情報を取得する
 	response := new(AppInfoResponse)
-	response.Name = "アイドルマスター シンデレラガールズ スターライトステージ"
-	response.InfoURL = "https://itunes.apple.com/jp/app/%E3%82%A2%E3%82%A4%E3%83%89%E3%83%AB%E3%83%9E%E3%82%B9%E3%82%BF%E3%83%BC-%E3%82%B7%E3%83%B3%E3%83%87%E3%83%AC%E3%83%A9%E3%82%AC%E3%83%BC%E3%83%AB%E3%82%BA-%E3%82%B9%E3%82%BF%E3%83%BC%E3%83%A9%E3%82%A4%E3%83%88%E3%82%B9%E3%83%86%E3%83%BC%E3%82%B8/id1016318735?mt=8&app=itunes"
-	response.ArtistName = "BANDAI NAMCO Entertainment Inc."
-	response.ArtistURL = "https://itunes.apple.com/jp/developer/bandai-namco-entertainment-inc/id352305770?mt=8"
-	response.Copyright = "©2015 BANDAI NAMCO Entertainment Inc."
+	apps := db.NewApps(access)
+	appsRecord, _ := apps.SelectRecord(req.ID)
+	if appsRecord.ID != 0 {
+		artists := db.NewArtists(access)
+		artistsRecord, _ := artists.SelectRecord(appsRecord.ArtistsID)
+
+		response.Name = appsRecord.Name
+		response.InfoURL = appsRecord.URL
+		response.ArtworkURL = appsRecord.ArtworkURL
+		response.ArtistName = artistsRecord.Name
+		response.ArtistURL = artistsRecord.URL
+		response.Copyright = appsRecord.Copyright
+	}
 
 	return c.JSON(http.StatusOK, response)
 }
@@ -63,16 +80,38 @@ func AppRankHandler(c echo.Context) error {
 	}
 	fmt.Printf("AppRankHandler request=%v\n", *req)
 
-	//とりあえずダミーをセット
-	response := new(AppRankResponse)
-	apps := make([]AppRankAppsResponse, 0)
+	//DBアクセスオブジェクト生成
+	access, _ := db.NewDBAccess()
+	err := access.Open()
+	if err != nil {
+		return err
+	}
+	defer access.Close()
 
-	updated1, _ := time.Parse("2006-01-02 15:04:05", "2017-09-01 10:00:00")
-	apps = append(apps, AppRankAppsResponse{
-		Rank:    1,
-		Updated: updated1,
-	})
-	response.Apps = apps
+	//指定アプリのランキング一覧を取得
+	ranks := db.NewRanks(access)
+	start := rankRangeStringToDate(req.Start)
+	end := rankRangeStringToDate(req.End)
+	ranksList, err := ranks.SelectAppRankList(start, end, req.Country, req.Kind, req.ID)
+	if err != nil {
+		return err
+	}
+
+	//レスポンス生成
+	response := new(AppRankResponse)
+	appsResponse := make([]AppRankAppsResponse, 0)
+	for _, data := range ranksList {
+		appsResponse = append(appsResponse, AppRankAppsResponse{
+			Rank:    data.Rank,
+			Updated: data.Updated,
+		})
+	}
+	response.Apps = appsResponse
 
 	return c.JSON(http.StatusOK, response)
+}
+
+func rankRangeStringToDate(rangeDate string) time.Time {
+	t, _ := time.Parse("2006-01-02", rangeDate)
+	return t
 }

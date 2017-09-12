@@ -83,6 +83,21 @@ func (ranks *Ranks) selectAppRank(updated time.Time, country string, kind int, a
 	return resultList[0].Rank, nil
 }
 
+func (ranks *Ranks) SelectAppRankList(start time.Time, end time.Time, country string, kind int, appID int64) ([]RanksTable, error) {
+	var resultList []RanksTable
+	_, err := ranks.access.session.Select("*").
+		From(ranksTableName).
+		Where("updated >= ? AND updated < ? AND country = ? AND kind = ? AND app_id = ?",
+			start, end, country, kind, appID).
+		OrderDir("rank", true).
+		Load(&resultList)
+	if err != nil {
+		return nil, err
+	}
+
+	return resultList, nil
+}
+
 func (ranks *Ranks) SelectLatestUpdated(country string, kind int) (time.Time, error) {
 	var resultList []RanksTable
 	_, err := ranks.access.session.Select("*").

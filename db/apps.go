@@ -9,11 +9,13 @@ const (
 	appsTableName = "apps"
 )
 
+//Apps はアプリ情報テーブルアクセス構造体
 type Apps struct {
 	access *DBAccess
 }
 
-type AppsTable struct {
+//AppsRecord はアプリ情報テーブルレコード構造体
+type AppsRecord struct {
 	ID          int64     `db:"id"`
 	Name        string    `db:"name"`
 	URL         string    `db:"url"`
@@ -24,13 +26,16 @@ type AppsTable struct {
 	ReleaseDate time.Time `db:"release_date"`
 }
 
+//NewApps はアプリ情報テーブルを初期返して返す
 func NewApps(access *DBAccess) *Apps {
 	apps := new(Apps)
 	apps.access = access
 	return apps
 }
 
-func (apps *Apps) Insert(record AppsTable) error {
+//Insert はアプリ情報テーブルにレコードを追加する
+//既に登録されている場合はデータの更新を行う
+func (apps *Apps) Insert(record AppsRecord) error {
 	fmt.Print(fmt.Sprintf("Apps.Insert ID:%d, Name:%s, URL:%s, ArtworkURL:%s, Kind:%s, Copyright:%s, ArtistsID:%d, ReleaseDate:%s\n",
 		record.ID, record.Name, record.URL, record.ArtworkURL, record.Kind, record.Copyright, record.ArtistsID, record.ReleaseDate))
 
@@ -70,8 +75,9 @@ func (apps *Apps) Insert(record AppsTable) error {
 	return nil
 }
 
-func (apps *Apps) SelectRecord(id int64) (AppsTable, error) {
-	var resultList []AppsTable
+//SelectRecord は指定したアプリIDからアプリ詳細情報レコードを取得する
+func (apps *Apps) SelectRecord(id int64) (AppsRecord, error) {
+	var resultList []AppsRecord
 	_, err := apps.access.session.Select("*").
 		From(appsTableName).
 		Where("id = ?", id).
@@ -79,10 +85,10 @@ func (apps *Apps) SelectRecord(id int64) (AppsTable, error) {
 		Load(&resultList)
 	if err != nil {
 		fmt.Printf("selectRecord err=%v\n", err)
-		return AppsTable{}, err
+		return AppsRecord{}, err
 	}
 	if len(resultList) == 0 {
-		return AppsTable{}, fmt.Errorf("データが見つからない")
+		return AppsRecord{}, fmt.Errorf("データが見つからない")
 	}
 
 	return resultList[0], nil

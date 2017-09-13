@@ -9,22 +9,26 @@ import (
 	"github.com/mryp/apprank-go/db"
 )
 
+//NowRequest は最新ランキング一覧RESTのリクエスト
 type NowRequest struct {
 	Country string `json:"country" xml:"country" form:"country" query:"country"`
 	Kind    int    `json:"kind" xml:"index" form:"kind" query:"kind"`
 }
 
+//NowResponse は最新ランキング一覧RESTのレスポンス
 type NowResponse struct {
 	Updated time.Time         `json:"updated" xml:"updated"`
 	Apps    []NowAppsResponce `json:"apps" xml:"apps"`
 }
 
+//NowAppsResponce は最新ランキング一覧RESTのアプリ情報部のレスポンス
 type NowAppsResponce struct {
 	ID         int64  `json:"id" xml:"id"`
 	Name       string `json:"name" xml:"name"`
 	ArtworkURL string `json:"artwork_url" xml:"artwork_url"`
 }
 
+//NowHandler は最新ランキング一覧ハンドラ
 func NowHandler(c echo.Context) error {
 	req := new(NowRequest)
 	if err := c.Bind(req); err != nil {

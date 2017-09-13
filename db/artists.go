@@ -7,23 +7,28 @@ const (
 	artistsTableName = "artists"
 )
 
+//Artists は著作者情報テーブルアクセス構造体
 type Artists struct {
 	access *DBAccess
 }
 
-type ArtistsTable struct {
+//ArtistsRecord は著作者情報テーブルのレコード構造体
+type ArtistsRecord struct {
 	ID   int64  `db:"id"`
 	Name string `db:"name"`
 	URL  string `db:"url"`
 }
 
+//NewArtists は著作者情報テーブルアクセス構造体を生成初期化して返す
 func NewArtists(access *DBAccess) *Artists {
 	artists := new(Artists)
 	artists.access = access
 	return artists
 }
 
-func (artists *Artists) Insert(record ArtistsTable) error {
+//Insert は著作者情報テーブルにレコードを追加する
+//すでに登録されている場合はデータの更新を行う
+func (artists *Artists) Insert(record ArtistsRecord) error {
 	fmt.Print(fmt.Sprintf("Artists.Insert ID:%d, Name:%s, URL:%s\n",
 		record.ID, record.Name, record.URL))
 
@@ -52,8 +57,9 @@ func (artists *Artists) Insert(record ArtistsTable) error {
 	return nil
 }
 
-func (artists *Artists) SelectRecord(id int64) (ArtistsTable, error) {
-	var resultList []ArtistsTable
+//SelectRecord 指定した著作者IDのレコードを取得する
+func (artists *Artists) SelectRecord(id int64) (ArtistsRecord, error) {
+	var resultList []ArtistsRecord
 	_, err := artists.access.session.Select("*").
 		From(artistsTableName).
 		Where("id = ?", id).
@@ -61,10 +67,10 @@ func (artists *Artists) SelectRecord(id int64) (ArtistsTable, error) {
 		Load(&resultList)
 	if err != nil {
 		fmt.Printf("selectRecord err=%v\n", err)
-		return ArtistsTable{}, err
+		return ArtistsRecord{}, err
 	}
 	if len(resultList) == 0 {
-		return ArtistsTable{}, fmt.Errorf("データが見つからない")
+		return ArtistsRecord{}, fmt.Errorf("データが見つからない")
 	}
 
 	return resultList[0], nil

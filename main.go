@@ -20,6 +20,7 @@ func main() {
 	startEchoServer()
 }
 
+//startCrontab はCRONの設定と初回起動を行う
 func startCrontab() {
 	interval := config.Now().Watch.Interval
 	rankWatcher = NewRankWatcher()
@@ -35,6 +36,7 @@ func startCrontab() {
 	rankWatcher.StartBgTask()
 }
 
+//startEchoServer はHTTPサーバーの初期化と起動を行う
 func startEchoServer() {
 	e := echo.New()
 	e.Use(middleware.Recover())

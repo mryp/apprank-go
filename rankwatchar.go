@@ -12,21 +12,31 @@ import (
 )
 
 const (
-	RssBaseURL          = "https://rss.itunes.apple.com/api/v1/ios-apps/"
-	RssKindGrossing     = "top-grossing"
+	//RssBaseURL はRSS取得のベースURL
+	RssBaseURL = "https://rss.itunes.apple.com/api/v1/ios-apps/"
+	//RssAPIName はRSS取得の実行API名
+	RssAPIName = "explicit.json"
+
+	//RssKindGrossing はRSS取得種別のセールスランキングの設定値
+	RssKindGrossing = "top-grossing"
+	//RssKindGrossingIpad はRSS取得種別のiPadセールスランキングの設定値
 	RssKindGrossingIpad = "top-grossing-ipad"
-	RssKindPaid         = "top-paid"
-	RssKindPaidIpad     = "top-paid-ipad"
-	RssKindFree         = "top-free"
-	RssKindFreeIpad     = "top-free-ipad"
-	RssAPIName          = "explicit.json"
+	//RssKindPaid はRSS取得種別の有料ランキングの設定値
+	RssKindPaid = "top-paid"
+	//RssKindPaidIpad はRSS取得種別のiPad有料ランキングの設定値
+	RssKindPaidIpad = "top-paid-ipad"
+	//RssKindFree はRSS取得種別の無料ランキングの設定値
+	RssKindFree = "top-free"
+	//RssKindFreeIpad はRSS取得種別のiPad無料ランキングの設定値
+	RssKindFreeIpad = "top-free-ipad"
 )
 
 var (
+	//rankWatcher はインスタンス化したものを保持しておく
 	rankWatcher *RankWatcher
 )
 
-//RssReedItem はRSSデータの中身オブジェクトを表す構造体
+//RssFeed はRSSデータの中身オブジェクトを表す構造体
 //変換ツール：https://mholt.github.io/json-to-go/
 type RssFeed struct {
 	Feed struct {
@@ -64,10 +74,13 @@ type RssFeed struct {
 	} `json:"feed"`
 }
 
+//RankWatcher はランキング監視用構造体
 type RankWatcher struct {
 	isBusy bool
 }
 
+//NewRankWatcher はランキングオブジェクトを生成して返す
+//既に作成済みの時はそれを返す
 func NewRankWatcher() *RankWatcher {
 	if rankWatcher != nil {
 		return rankWatcher
@@ -78,6 +91,7 @@ func NewRankWatcher() *RankWatcher {
 	return rankWatcher
 }
 
+//StartBgTask はランキングの取得とDB設定タスクを非同期で実行する
 func (watcher *RankWatcher) StartBgTask() {
 	go func() {
 		fmt.Printf("RankWatcher.StartBgTask 処理開始")
@@ -85,8 +99,11 @@ func (watcher *RankWatcher) StartBgTask() {
 	}()
 }
 
+//UpdateRanking はランキングを取得しDBを更新する
 func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	fmt.Printf("RankWatcher.UpdateRanking 処理開始")
+
+	//ランキングRSSを取得
 	url := fmt.Sprintf("https://rss.itunes.apple.com/api/v1/%s/ios-apps/%s/%d/%s",
 		country, kind, config.Now().Watch.MaxCount, RssAPIName)
 	fmt.Printf("url=%s\n", url)
@@ -97,6 +114,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	}
 	defer response.Body.Close()
 
+	//RSSをオブジェクトに変換
 	rss := new(RssFeed)
 	err = json.NewDecoder(response.Body).Decode(rss)
 	if err != nil {
@@ -104,6 +122,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		return
 	}
 
+	//DBアクセスオブジェクトを作成
 	access, _ := db.NewDBAccess()
 	err = access.Open()
 	if err != nil {
@@ -111,11 +130,11 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		return
 	}
 	defer access.Close()
-
 	ranks := db.NewRanks(access)
 	artists := db.NewArtists(access)
 	apps := db.NewApps(access)
 
+	//最新のデータかどうか確認
 	updated := stringToTime(rss.Feed.Updated)
 	dbKind := rssKindToDBKind(kind)
 	latestUpdated, _ := ranks.SelectLatestUpdated(country, dbKind)
@@ -123,13 +142,13 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	fmt.Printf("latestUpdated=%s\n", latestUpdated.UTC())
 	if updated.UTC() == latestUpdated.UTC() {
 		fmt.Printf("対象時刻データは登録済み\n")
-		//return
+		return
 	}
 
 	for i, data := range rss.Feed.Results {
 		//ランキングを登録
 		rank := i + 1
-		ranksRecord := db.RanksTable{Updated: updated,
+		ranksRecord := db.RanksRecord{Updated: updated,
 			Country: country,
 			Kind:    dbKind,
 			Rank:    rank,
@@ -141,7 +160,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		}
 
 		//著作者情報を登録・更新
-		artistsRecord := db.ArtistsTable{ID: stringToInt64(data.ArtistID),
+		artistsRecord := db.ArtistsRecord{ID: stringToInt64(data.ArtistID),
 			Name: data.ArtistName,
 			URL:  data.ArtistURL}
 		err = artists.Insert(artistsRecord)
@@ -151,7 +170,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 		}
 
 		//アプリ情報を登録・更新
-		appsRecord := db.AppsTable{ID: stringToInt64(data.ID),
+		appsRecord := db.AppsRecord{ID: stringToInt64(data.ID),
 			Name:        data.Name,
 			URL:         data.URL,
 			ArtworkURL:  data.ArtworkURL100,
@@ -167,16 +186,19 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	}
 }
 
+//stringToTime はRSSの時刻文字列（RFC3339）を時刻データに変換する
 func stringToTime(rssTime string) time.Time {
 	t, _ := time.Parse(time.RFC3339, rssTime)
 	return t
 }
 
+//stringToDate はRSSの日付文字列（YYYY-MM-DD）を時刻データに変換する
 func stringToDate(rssTime string) time.Time {
 	t, _ := time.Parse("2006-01-02", rssTime)
 	return t
 }
 
+//rssKindToDBKind はRSSの取得種別をDBのランキング種別に変換する
 func rssKindToDBKind(rssKind string) int {
 	kind := 0
 	switch rssKind {
@@ -196,6 +218,7 @@ func rssKindToDBKind(rssKind string) int {
 	return kind
 }
 
+//stringToInt64 はRSS文字列をint64に変換する
 func stringToInt64(text string) int64 {
 	i64, _ := strconv.ParseInt(text, 10, 64)
 	return i64

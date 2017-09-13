@@ -9,10 +9,12 @@ import (
 	"github.com/mryp/apprank-go/db"
 )
 
+//AppInfoRequest はアプリ情報RESTのリクエスト
 type AppInfoRequest struct {
 	ID int64 `json:"id" xml:"id" form:"id" query:"id"`
 }
 
+//AppInfoResponse はアプリ情報RESTのレスポンス
 type AppInfoResponse struct {
 	Name       string `json:"name" xml:"name"`
 	InfoURL    string `json:"info_url" xml:"info_url"`
@@ -22,6 +24,7 @@ type AppInfoResponse struct {
 	Copyright  string `json:"copyright" xml:"copyright"`
 }
 
+//AppRankRequest はアプリ順位RESTのリクエスト
 type AppRankRequest struct {
 	ID      int64  `json:"id" xml:"id" form:"id" query:"id"`
 	Country string `json:"country" xml:"country" form:"country" query:"country"`
@@ -30,15 +33,18 @@ type AppRankRequest struct {
 	End     string `json:"end" xml:"end" form:"end" query:"end"`
 }
 
+//AppRankResponse はアプリ順位RESTのレスポンス
 type AppRankResponse struct {
 	Apps []AppRankAppsResponse `json:"apps" xml:"apps"`
 }
 
+//AppRankAppsResponse はアプリ順位RESTのランキング詳細レスポンス
 type AppRankAppsResponse struct {
 	Rank    int       `json:"rank" xml:"rank" form:"rank" query:"rank"`
 	Updated time.Time `json:"updated" xml:"updated" form:"updated" query:"updated"`
 }
 
+//AppInfoHandler アプリ詳細RESTハンドラ
 func AppInfoHandler(c echo.Context) error {
 	req := new(AppInfoRequest)
 	if err := c.Bind(req); err != nil {
@@ -73,6 +79,7 @@ func AppInfoHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+//AppRankHandler アプリ順位RESTハンドラ
 func AppRankHandler(c echo.Context) error {
 	req := new(AppRankRequest)
 	if err := c.Bind(req); err != nil {
@@ -111,6 +118,7 @@ func AppRankHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+//rankRangeStringToDate ランキングの範囲日文字列を時刻オブジェクトに変換する
 func rankRangeStringToDate(rangeDate string) time.Time {
 	t, _ := time.Parse("2006-01-02", rangeDate)
 	return t

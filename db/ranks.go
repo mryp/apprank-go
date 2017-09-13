@@ -5,23 +5,31 @@ import (
 	"time"
 )
 
-//テーブル名
 const (
-	ranksTableName        = "ranks"
-	RanksKindGrossing     = 1
+	//ranksTableName はランキングテーブル名
+	ranksTableName = "ranks"
+
+	//RanksKindGrossing は種別のセールスランキング
+	RanksKindGrossing = 1
+	//RanksKindGrossingIpad は種別のiPadセールスランキング
 	RanksKindGrossingIpad = 2
-	RanksKindPaid         = 3
-	RanksKindPaidIpad     = 4
-	RanksKindFree         = 5
-	RanksKindFreeIpad     = 6
+	//RanksKindPaid は種別の有料ランキング
+	RanksKindPaid = 3
+	//RanksKindPaidIpad は種別のiPad有料ランキング
+	RanksKindPaidIpad = 4
+	//RanksKindFree は種別の無料ランキング
+	RanksKindFree = 5
+	//RanksKindFreeIpad は種別のiPad無料スランキング
+	RanksKindFreeIpad = 6
 )
 
-//情報テーブル
+//Ranks はRanksテーブルアクセス用構造体
 type Ranks struct {
 	access *DBAccess
 }
 
-type RanksTable struct {
+//RanksRecord はRanksテーブルレコードを表す構造体
+type RanksRecord struct {
 	ID      int64     `db:"id"`
 	Updated time.Time `db:"updated"`
 	Country string    `db:"country"`
@@ -30,13 +38,16 @@ type RanksTable struct {
 	AppID   int64     `db:"app_id"`
 }
 
+//NewRanks はDBアクセス情報使用してアクセス用構造体を生成して返す
 func NewRanks(access *DBAccess) *Ranks {
 	ranks := new(Ranks)
 	ranks.access = access
 	return ranks
 }
 
-func (ranks *Ranks) Insert(record RanksTable) error {
+//Insert はランキング情報を登録する
+//既に登録済みの時は登録しない
+func (ranks *Ranks) Insert(record RanksRecord) error {
 	if record.ID != 0 {
 		return fmt.Errorf("パラメーターエラー")
 	}
@@ -64,8 +75,9 @@ func (ranks *Ranks) Insert(record RanksTable) error {
 	return nil
 }
 
+//selectAppRank は指定した時刻のアプリランキング順位を取得する
 func (ranks *Ranks) selectAppRank(updated time.Time, country string, kind int, appID int64) (int, error) {
-	var resultList []RanksTable
+	var resultList []RanksRecord
 	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("updated = ? AND country = ? AND kind = ? AND app_id = ?",
@@ -83,8 +95,9 @@ func (ranks *Ranks) selectAppRank(updated time.Time, country string, kind int, a
 	return resultList[0].Rank, nil
 }
 
-func (ranks *Ranks) SelectAppRankList(start time.Time, end time.Time, country string, kind int, appID int64) ([]RanksTable, error) {
-	var resultList []RanksTable
+//SelectAppRankList は指定した時間範囲のアプリランキング順位リストを取得する
+func (ranks *Ranks) SelectAppRankList(start time.Time, end time.Time, country string, kind int, appID int64) ([]RanksRecord, error) {
+	var resultList []RanksRecord
 	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("updated >= ? AND updated < ? AND country = ? AND kind = ? AND app_id = ?",
@@ -98,8 +111,9 @@ func (ranks *Ranks) SelectAppRankList(start time.Time, end time.Time, country st
 	return resultList, nil
 }
 
+//SelectLatestUpdated は指定した種別の最後の更新日時を取得する
 func (ranks *Ranks) SelectLatestUpdated(country string, kind int) (time.Time, error) {
-	var resultList []RanksTable
+	var resultList []RanksRecord
 	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("country = ? AND kind = ?", country, kind).
@@ -116,8 +130,9 @@ func (ranks *Ranks) SelectLatestUpdated(country string, kind int) (time.Time, er
 	return resultList[0].Updated, nil
 }
 
-func (ranks *Ranks) SelectRankList(updated time.Time, country string, kind int) ([]RanksTable, error) {
-	var resultList []RanksTable
+//SelectRankList は指定した時刻に登録されているアプリランキング一覧を取得する
+func (ranks *Ranks) SelectRankList(updated time.Time, country string, kind int) ([]RanksRecord, error) {
+	var resultList []RanksRecord
 	_, err := ranks.access.session.Select("*").
 		From(ranksTableName).
 		Where("updated = ? AND country = ? AND kind = ?", updated, country, kind).

@@ -3,6 +3,8 @@ package db
 import (
 	_ "github.com/go-sql-driver/mysql" //dbrで使用する
 	"github.com/gocraft/dbr"
+
+	"github.com/mryp/apprank-go/config"
 )
 
 const (
@@ -24,7 +26,8 @@ func NewDBAccess() (*DBAccess, error) {
 }
 
 func (access *DBAccess) Open() error {
-	db, err := dbr.Open("mysql", dbUserID+":"+dbPassword+"@tcp("+dbHostName+":"+dbPortNumber+")/"+dbName+"?parseTime=true", nil)
+	dbConfig := config.Now().DB
+	db, err := dbr.Open("mysql", dbConfig.UserID+":"+dbConfig.Password+"@tcp("+dbConfig.HostName+":"+dbConfig.PortNumber+")/"+dbConfig.Name+"?parseTime=true", nil)
 	if err != nil {
 		return err
 	}

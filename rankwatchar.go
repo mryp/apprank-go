@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mryp/apprank-go/config"
 	"github.com/mryp/apprank-go/db"
 )
 
@@ -18,7 +19,6 @@ const (
 	RssKindPaidIpad     = "top-paid-ipad"
 	RssKindFree         = "top-free"
 	RssKindFreeIpad     = "top-free-ipad"
-	RssListCountMax     = 10
 	RssAPIName          = "explicit.json"
 )
 
@@ -88,7 +88,7 @@ func (watcher *RankWatcher) StartBgTask() {
 func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	fmt.Printf("RankWatcher.UpdateRanking 処理開始")
 	url := fmt.Sprintf("https://rss.itunes.apple.com/api/v1/%s/ios-apps/%s/%d/%s",
-		country, kind, RssListCountMax, RssAPIName)
+		country, kind, config.Now().Watch.MaxCount, RssAPIName)
 	fmt.Printf("url=%s\n", url)
 	response, err := http.Get(url)
 	if err != nil {
@@ -123,7 +123,7 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	fmt.Printf("latestUpdated=%s\n", latestUpdated.UTC())
 	if updated.UTC() == latestUpdated.UTC() {
 		fmt.Printf("対象時刻データは登録済み\n")
-		return
+		//return
 	}
 
 	for i, data := range rss.Feed.Results {

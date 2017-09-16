@@ -13,9 +13,11 @@ import (
 
 const (
 	//RssBaseURL はRSS取得のベースURL
-	RssBaseURL = "https://rss.itunes.apple.com/api/v1/ios-apps/"
+	RssBaseURL = "https://rss.itunes.apple.com/api/v1"
 	//RssAPIName はRSS取得の実行API名
-	RssAPIName = "explicit.json"
+	RssAPIMedia = "ios-apps"
+	RssAPIGenre = "all"
+	RssAPIName  = "explicit.json"
 
 	//RssKindGrossing はRSS取得種別のセールスランキングの設定値
 	RssKindGrossing = "top-grossing"
@@ -96,6 +98,11 @@ func (watcher *RankWatcher) StartBgTask() {
 	go func() {
 		fmt.Printf("RankWatcher.StartBgTask 処理開始")
 		watcher.UpdateRanking("jp", RssKindGrossing)
+		watcher.UpdateRanking("jp", RssKindGrossingIpad)
+		watcher.UpdateRanking("jp", RssKindPaid)
+		watcher.UpdateRanking("jp", RssKindPaidIpad)
+		watcher.UpdateRanking("jp", RssKindFree)
+		watcher.UpdateRanking("jp", RssKindFreeIpad)
 	}()
 }
 
@@ -104,8 +111,10 @@ func (watcher *RankWatcher) UpdateRanking(country string, kind string) {
 	fmt.Printf("RankWatcher.UpdateRanking 処理開始")
 
 	//ランキングRSSを取得
-	url := fmt.Sprintf("https://rss.itunes.apple.com/api/v1/%s/ios-apps/%s/%d/%s",
-		country, kind, config.Now().Watch.MaxCount, RssAPIName)
+	//APIフォーマットは https://rss.itunes.apple.com/ja-jp を参照
+	//例：https://rss.itunes.apple.com/api/v1/jp/ios-apps/top-grossing/all/10/explicit.json
+	url := fmt.Sprintf("%s/%s/%s/%s/%s/%d/%s",
+		RssBaseURL, country, RssAPIMedia, kind, RssAPIGenre, config.Now().Watch.MaxCount, RssAPIName)
 	fmt.Printf("url=%s\n", url)
 	response, err := http.Get(url)
 	if err != nil {

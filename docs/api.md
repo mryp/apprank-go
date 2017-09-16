@@ -25,6 +25,7 @@ FORMAT: 1A
                 + id: 1000000 (number)  - アプリID
                 + name: ほげほげアプリ (string) - アプリ名
                 + artwork_url: http://www.hoge/hoge.jpg (string)  - アイコン画像URL
+                + artist_name: ほげほげ株式会社 (string) - 著作者名
 
 
 ## アプリ詳細取得 [/v1/appinfo{?id}]

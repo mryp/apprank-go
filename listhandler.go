@@ -26,6 +26,7 @@ type NowAppsResponce struct {
 	ID         int64  `json:"id" xml:"id"`
 	Name       string `json:"name" xml:"name"`
 	ArtworkURL string `json:"artwork_url" xml:"artwork_url"`
+	ArtistName string `json:"artist_name" xml:"artist_name"`
 }
 
 //NowHandler は最新ランキング一覧ハンドラ
@@ -65,15 +66,18 @@ func NowHandler(c echo.Context) error {
 
 	//アプリ一覧用情報生成
 	apps := db.NewApps(access)
+	artists := db.NewArtists(access)
 	appsResponse := make([]NowAppsResponce, 0)
 	for _, data := range rankList {
 		record, _ := apps.SelectRecord(data.AppID)
 		name := record.Name
 		artworkURL := record.ArtworkURL
+		artistsRecord, _ := artists.SelectRecord(record.ArtistsID)
 		appsResponse = append(appsResponse, NowAppsResponce{
 			ID:         data.AppID,
 			Name:       name,
 			ArtworkURL: artworkURL,
+			ArtistName: artistsRecord.Name,
 		})
 	}
 	response.Apps = appsResponse
